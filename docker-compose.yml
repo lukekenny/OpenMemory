@@ -82,6 +82,9 @@ services:
       # Vector Backend (follows OM_METADATA_BACKEND unless set to 'valkey')
       - OM_VECTOR_BACKEND=${OM_VECTOR_BACKEND:-sqlite}
       - OM_VECTOR_TABLE=${OM_VECTOR_TABLE:-openmemory_vectors}
+      - OM_VALKEY_HOST=${OM_VALKEY_HOST}
+      - OM_VALKEY_PORT=${OM_VALKEY_PORT}
+      - OPENMEMORY_REDIS_URL=${OPENMEMORY_REDIS_URL}
       - OM_WEAVIATE_URL=${OM_WEAVIATE_URL:-}
       - OM_WEAVIATE_API_KEY=${OM_WEAVIATE_API_KEY:-}
       - OM_WEAVIATE_CLASS=${OM_WEAVIATE_CLASS:-OpenMemory}
