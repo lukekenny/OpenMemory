@@ -127,6 +127,9 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    networks:
+      oracle_macvlan:
+        ipv4_address: 172.16.10.234
 
   # Dashboard: Web UI for visualizing and managing memories
   dashboard:
@@ -136,7 +139,7 @@ services:
     ports:
       - '3000:3000'
     environment:
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://172.16.10.234:8080}
       - NEXT_PUBLIC_API_KEY=${NEXT_PUBLIC_API_KEY:-}
     depends_on:
       openmemory:
@@ -148,6 +151,9 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    networks:
+      oracle_macvlan:
+        ipv4_address: 172.16.10.235
 
   # Optional: Valkey for high-performance vector storage
   # Uncomment to use Valkey instead of SQLite/PostgreSQL for vectors
@@ -165,9 +171,17 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    networks:
+      oracle_macvlan:
+        ipv4_address: 172.16.10.236
 
 volumes:
   openmemory_data:
     driver: local
   valkey_data:
     driver: local
+
+networks:
+  oracle_macvlan:
+    external: true
+
