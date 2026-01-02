@@ -163,14 +163,14 @@ services:
   # Uncomment to use Valkey instead of SQLite/PostgreSQL for vectors
   # Don't forget to set OM_VECTOR_BACKEND=valkey in your .env
   valkey:
-    image: valkey/valkey:8.0
+    image: redis/redis-stack-server:latest
     ports:
       - '6379:6379'
     volumes:
       - valkey_data:/data
     restart: unless-stopped
     healthcheck:
-      test: ['CMD', 'valkey-cli', 'ping']
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 30s
       timeout: 10s
       retries: 3
