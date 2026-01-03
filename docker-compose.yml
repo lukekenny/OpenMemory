@@ -162,30 +162,30 @@ services:
   # Optional: Valkey for high-performance vector storage
   # Uncomment to use Valkey instead of SQLite/PostgreSQL for vectors
   # Don't forget to set OM_VECTOR_BACKEND=valkey in your .env
-  redis:
-    image: redis/redis-stack-server
-    ports:
-      - '6379:6379'
-    volumes:
-      - redis_data:/data
-    restart: unless-stopped
-    environment:
-      - REDIS_ARGS=${REDIS_ARGS}
-    healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    networks:
-      oracle_macvlan:
-        ipv4_address: 172.16.10.236
+#  redis:
+#    image: redis/redis-stack-server
+#    ports:
+#      - '6379:6379'
+#    volumes:
+#      - redis_data:/data
+#    restart: unless-stopped
+#    environment:
+#      - REDIS_ARGS=${REDIS_ARGS}
+#    healthcheck:
+#      test: ['CMD', 'redis-cli', 'ping']
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
+#      start_period: 30s
+#    networks:
+#      oracle_macvlan:
+#        ipv4_address: 172.16.10.236
 
 volumes:
   openmemory_data:
     driver: local
-  redis_data:
-    driver: local
+#  redis_data:
+#    driver: local
 
 networks:
   oracle_macvlan:
