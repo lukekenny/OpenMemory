@@ -163,11 +163,11 @@ services:
   # Uncomment to use Valkey instead of SQLite/PostgreSQL for vectors
   # Don't forget to set OM_VECTOR_BACKEND=valkey in your .env
   valkey:
-    image: valkey/valkey-bundle:latest
+    image: redis/redis-stack-server
     ports:
       - '6379:6379'
     volumes:
-      - valkey_data:/data
+      - redis_data:/data
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'valkey-cli', 'ping']
@@ -182,7 +182,7 @@ services:
 volumes:
   openmemory_data:
     driver: local
-  valkey_data:
+  redis_data:
     driver: local
 
 networks:
