@@ -2,10 +2,10 @@ version: '3.8'
 
 services:
   openmemory:
-    #build:
-    #  context: ./packages/openmemory-js
-    #  dockerfile: Dockerfile
-    image: ghcr.io/lukekenny/openmemory-js:latest
+    build:
+      context: ./packages/openmemory-js
+      dockerfile: Dockerfile
+    #image: ghcr.io/lukekenny/openmemory-js:latest
     ports:
       - '8080:8080'
     environment:
@@ -162,30 +162,29 @@ services:
   # Optional: Valkey for high-performance vector storage
   # Uncomment to use Valkey instead of SQLite/PostgreSQL for vectors
   # Don't forget to set OM_VECTOR_BACKEND=valkey in your .env
-#  valkey:
-#    image: redis/redis-stack-server:latest
-#    ports:
-#      - '6379:6379'
-#    volumes:
-#      - valkey_data:/data
-#    restart: unless-stopped
-#    healthcheck:
-#      test: ['CMD', 'redis-cli', 'ping']
-#      interval: 30s
-#      timeout: 10s
-#      retries: 3
-#      start_period: 30s
-#    networks:
-#      oracle_macvlan:
-#        ipv4_address: 172.16.10.236
+  valkey:
+    image: valkey/valkey:8.0
+    ports:
+      - '6379:6379'
+    volumes:
+      - valkey_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'valkey-cli', 'ping']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      oracle_macvlan:
+        ipv4_address: 172.16.10.236
 
 volumes:
   openmemory_data:
     driver: local
-#  valkey_data:
-#    driver: local
+  valkey_data:
+    driver: local
 
 networks:
   oracle_macvlan:
     external: true
-
