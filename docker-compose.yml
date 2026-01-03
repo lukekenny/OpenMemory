@@ -163,7 +163,7 @@ services:
   # Uncomment to use Valkey instead of SQLite/PostgreSQL for vectors
   # Don't forget to set OM_VECTOR_BACKEND=valkey in your .env
   valkey:
-    image: valkey/valkey:8.0
+    image: valkey/valkey-bundle:alpine
     ports:
       - '6379:6379'
     volumes:
