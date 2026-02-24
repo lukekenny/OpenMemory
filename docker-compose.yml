@@ -135,6 +135,8 @@ services:
 
   # Dashboard: Web UI for visualizing and managing memories
   dashboard:
+    profiles:
+      - ui
     image: ghcr.io/lukekenny/openmemory-dash/openmemory-dash:latest
     ports:
       - '3000:3000'
