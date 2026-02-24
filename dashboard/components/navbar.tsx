@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://openmemory:8080"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://172.16.10.140:8080"
 
 export default function Navbar() {
     const [backendStatus, setBackendStatus] = useState<'online' | 'offline' | 'checking'>('checking')
