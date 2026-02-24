@@ -158,7 +158,7 @@ if (is_pg) {
             `create table if not exists ${m}(id uuid primary key,user_id text,segment integer default 0,content text not null,simhash text,primary_sector text not null,tags text,meta text,created_at bigint,updated_at bigint,last_seen_at bigint,salience double precision,decay_lambda double precision,version integer default 1,mean_dim integer,mean_vec bytea,compressed_vec bytea,feedback_score double precision default 0)`,
         );
         await pg.query(
-            `create table if not exists ${v}(id uuid,sector text,user_id text,v vector,dim integer not null,primary key(id,sector))`,
+            `create table if not exists ${v}(id uuid,sector text,user_id text,v vector(1536),dim integer not null,primary key(id,sector))`,
         );
         await pg.query(
             `create index if not exists openmemory_vectors_hnsw_idx on ${v} using hnsw (v vector_cosine_ops)`,
