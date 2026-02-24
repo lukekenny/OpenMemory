@@ -91,6 +91,9 @@ export function mem(app: any) {
                     path: x.path,
                     salience: x.salience,
                     last_seen_at: x.last_seen_at,
+                    // Added for downstream pipelines (fact_summary routing, filtering, etc.)
+                    tags: x.tags || [],
+                    metadata: x.meta || {},
                 })),
             });
         } catch (e: any) {
