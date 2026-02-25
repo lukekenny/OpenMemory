@@ -27,24 +27,43 @@ import {
 /**
  * Express `res.json()` does not reliably serialize Date objects in nested structures.
  * The temporal graph query layer returns Date instances for valid_from/valid_to/last_updated.
- * Normalize them here at the API boundary to avoid null/{} and "Invalid Date" surprises.
+ *
+ * When using Postgres, BIGINT fields are often returned as strings by the driver.
+ * If those strings represent epoch milliseconds (e.g. "1771983970000"), `new Date(str)`
+ * is not reliably parsed as a timestamp. Normalize digit-only strings to numbers first.
  */
 function iso_or_null(d: any): string | null {
     if (d === null || d === undefined) return null
+
     if (d instanceof Date) {
         const t = d.getTime()
         return Number.isFinite(t) ? d.toISOString() : null
     }
+
     if (typeof d === 'number') {
         const dd = new Date(d)
         const t = dd.getTime()
         return Number.isFinite(t) ? dd.toISOString() : null
     }
+
     if (typeof d === 'string') {
-        const dd = new Date(d)
+        const s = d.trim()
+
+        // Epoch millisecond timestamps coming from Postgres BIGINT columns
+        if (/^\d+$/.test(s)) {
+            // Number() is safe here for current-era epoch ms (<= 2^53)
+            const n = Number(s)
+            const dd = new Date(n)
+            const t = dd.getTime()
+            return Number.isFinite(t) ? dd.toISOString() : null
+        }
+
+        // Fall back to Date parsing for ISO/RFC strings
+        const dd = new Date(s)
         const t = dd.getTime()
         return Number.isFinite(t) ? dd.toISOString() : null
     }
+
     return null
 }
 
