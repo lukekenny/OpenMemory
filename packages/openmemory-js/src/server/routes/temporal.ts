@@ -1,13 +1,70 @@
-import { insert_fact, update_fact, invalidate_fact, delete_fact, apply_confidence_decay, get_active_facts_count, get_total_facts_count } from '../../temporal_graph/store'
-import { query_facts_at_time, get_current_fact, query_facts_in_range, search_facts, get_facts_by_subject, get_related_facts } from '../../temporal_graph/query'
-import { get_subject_timeline, get_predicate_timeline, get_changes_in_window, compare_time_points, get_change_frequency, get_volatile_facts } from '../../temporal_graph/timeline'
+import {
+    insert_fact,
+    update_fact,
+    invalidate_fact,
+    delete_fact,
+    apply_confidence_decay,
+    get_active_facts_count,
+    get_total_facts_count,
+} from '../../temporal_graph/store'
+import {
+    query_facts_at_time,
+    get_current_fact,
+    query_facts_in_range,
+    search_facts,
+    get_facts_by_subject,
+    get_related_facts,
+} from '../../temporal_graph/query'
+import {
+    get_subject_timeline,
+    get_predicate_timeline,
+    get_changes_in_window,
+    compare_time_points,
+    get_change_frequency,
+    get_volatile_facts,
+} from '../../temporal_graph/timeline'
+
+/**
+ * Express `res.json()` does not reliably serialize Date objects in nested structures.
+ * The temporal graph query layer returns Date instances for valid_from/valid_to/last_updated.
+ * Normalize them here at the API boundary to avoid null/{} and "Invalid Date" surprises.
+ */
+function iso_or_null(d: any): string | null {
+    if (d === null || d === undefined) return null
+    if (d instanceof Date) {
+        const t = d.getTime()
+        return Number.isFinite(t) ? d.toISOString() : null
+    }
+    if (typeof d === 'number') {
+        const dd = new Date(d)
+        const t = dd.getTime()
+        return Number.isFinite(t) ? dd.toISOString() : null
+    }
+    if (typeof d === 'string') {
+        const dd = new Date(d)
+        const t = dd.getTime()
+        return Number.isFinite(t) ? dd.toISOString() : null
+    }
+    return null
+}
+
+function fact_to_json(f: any) {
+    return {
+        ...f,
+        valid_from: iso_or_null(f?.valid_from),
+        valid_to: iso_or_null(f?.valid_to),
+        last_updated: iso_or_null(f?.last_updated),
+    }
+}
 
 export const create_temporal_fact = async (req: any, res: any) => {
     try {
         const { subject, predicate, object, valid_from, confidence, metadata } = req.body
 
         if (!subject || !predicate || !object) {
-            return res.status(400).json({ error: 'Missing required fields: subject, predicate, object' })
+            return res
+                .status(400)
+                .json({ error: 'Missing required fields: subject, predicate, object' })
         }
 
         const valid_from_date = valid_from ? new Date(valid_from) : new Date()
@@ -22,7 +79,7 @@ export const create_temporal_fact = async (req: any, res: any) => {
             object,
             valid_from: valid_from_date.toISOString(),
             confidence: conf,
-            message: 'Fact created successfully'
+            message: 'Fact created successfully',
         })
     } catch (error) {
         console.error('[TEMPORAL API] Error creating fact:', error)
@@ -30,13 +87,14 @@ export const create_temporal_fact = async (req: any, res: any) => {
     }
 }
 
-
 export const get_temporal_fact = async (req: any, res: any) => {
     try {
         const { subject, predicate, object, at, min_confidence } = req.query
 
         if (!subject && !predicate && !object) {
-            return res.status(400).json({ error: 'At least one of subject, predicate, or object is required' })
+            return res
+                .status(400)
+                .json({ error: 'At least one of subject, predicate, or object is required' })
         }
 
         const at_date = at ? new Date(at) : new Date()
@@ -45,16 +103,21 @@ export const get_temporal_fact = async (req: any, res: any) => {
         const facts = await query_facts_at_time(subject, predicate, object, at_date, min_conf)
 
         res.json({
-            facts,
-            query: { subject, predicate, object, at: at_date.toISOString(), min_confidence: min_conf },
-            count: facts.length
+            facts: facts.map(fact_to_json),
+            query: {
+                subject,
+                predicate,
+                object,
+                at: at_date.toISOString(),
+                min_confidence: min_conf,
+            },
+            count: facts.length,
         })
     } catch (error) {
         console.error('[TEMPORAL API] Error querying facts:', error)
         res.status(500).json({ error: 'Failed to query facts' })
     }
 }
-
 
 export const get_current_temporal_fact = async (req: any, res: any) => {
     try {
@@ -67,16 +130,17 @@ export const get_current_temporal_fact = async (req: any, res: any) => {
         const fact = await get_current_fact(subject, predicate)
 
         if (!fact) {
-            return res.status(404).json({ error: 'No current fact found', subject, predicate })
+            return res
+                .status(404)
+                .json({ error: 'No current fact found', subject, predicate })
         }
 
-        res.json({ fact })
+        res.json({ fact: fact_to_json(fact) })
     } catch (error) {
         console.error('[TEMPORAL API] Error getting current fact:', error)
         res.status(500).json({ error: 'Failed to get current fact' })
     }
 }
-
 
 export const get_entity_timeline = async (req: any, res: any) => {
     try {
@@ -92,14 +156,13 @@ export const get_entity_timeline = async (req: any, res: any) => {
             subject,
             predicate,
             timeline,
-            count: timeline.length
+            count: timeline.length,
         })
     } catch (error) {
         console.error('[TEMPORAL API] Error getting timeline:', error)
         res.status(500).json({ error: 'Failed to get timeline' })
     }
 }
-
 
 export const get_predicate_history = async (req: any, res: any) => {
     try {
@@ -119,14 +182,13 @@ export const get_predicate_history = async (req: any, res: any) => {
             from: from_date?.toISOString(),
             to: to_date?.toISOString(),
             timeline,
-            count: timeline.length
+            count: timeline.length,
         })
     } catch (error) {
         console.error('[TEMPORAL API] Error getting predicate timeline:', error)
         res.status(500).json({ error: 'Failed to get predicate timeline' })
     }
 }
-
 
 export const update_temporal_fact = async (req: any, res: any) => {
     try {
@@ -138,10 +200,13 @@ export const update_temporal_fact = async (req: any, res: any) => {
         }
 
         if (confidence === undefined && metadata === undefined) {
-            return res.status(400).json({ error: 'At least one of confidence or metadata must be provided' })
+            return res
+                .status(400)
+                .json({ error: 'At least one of confidence or metadata must be provided' })
         }
 
-        const conf = confidence !== undefined ? Math.max(0, Math.min(1, confidence)) : undefined
+        const conf =
+            confidence !== undefined ? Math.max(0, Math.min(1, confidence)) : undefined
 
         await update_fact(id, conf, metadata)
 
@@ -151,7 +216,6 @@ export const update_temporal_fact = async (req: any, res: any) => {
         res.status(500).json({ error: 'Failed to update fact' })
     }
 }
-
 
 export const invalidate_temporal_fact = async (req: any, res: any) => {
     try {
@@ -166,13 +230,16 @@ export const invalidate_temporal_fact = async (req: any, res: any) => {
 
         await invalidate_fact(id, valid_to_date)
 
-        res.json({ id, valid_to: valid_to_date.toISOString(), message: 'Fact invalidated successfully' })
+        res.json({
+            id,
+            valid_to: valid_to_date.toISOString(),
+            message: 'Fact invalidated successfully',
+        })
     } catch (error) {
         console.error('[TEMPORAL API] Error invalidating fact:', error)
         res.status(500).json({ error: 'Failed to invalidate fact' })
     }
 }
-
 
 export const get_subject_facts = async (req: any, res: any) => {
     try {
@@ -192,15 +259,14 @@ export const get_subject_facts = async (req: any, res: any) => {
             subject,
             at: at_date?.toISOString(),
             include_historical: include_hist,
-            facts,
-            count: facts.length
+            facts: facts.map(fact_to_json),
+            count: facts.length,
         })
     } catch (error) {
         console.error('[TEMPORAL API] Error getting subject facts:', error)
         res.status(500).json({ error: 'Failed to get subject facts' })
     }
 }
-
 
 export const search_temporal_facts = async (req: any, res: any) => {
     try {
@@ -211,7 +277,9 @@ export const search_temporal_facts = async (req: any, res: any) => {
         }
 
         if (!['subject', 'predicate', 'object'].includes(field)) {
-            return res.status(400).json({ error: 'Field must be one of: subject, predicate, object' })
+            return res
+                .status(400)
+                .json({ error: 'Field must be one of: subject, predicate, object' })
         }
 
         const at_date = at ? new Date(at) : undefined
@@ -221,15 +289,14 @@ export const search_temporal_facts = async (req: any, res: any) => {
             pattern,
             field,
             at: at_date?.toISOString(),
-            facts,
-            count: facts.length
+            facts: facts.map(fact_to_json),
+            count: facts.length,
         })
     } catch (error) {
         console.error('[TEMPORAL API] Error searching facts:', error)
         res.status(500).json({ error: 'Failed to search facts' })
     }
 }
-
 
 export const get_temporal_stats = async (req: any, res: any) => {
     try {
@@ -241,14 +308,16 @@ export const get_temporal_stats = async (req: any, res: any) => {
             active_facts,
             historical_facts,
             total_facts,
-            historical_percentage: total_facts > 0 ? ((historical_facts / total_facts) * 100).toFixed(2) + '%' : '0%'
+            historical_percentage:
+                total_facts > 0
+                    ? ((historical_facts / total_facts) * 100).toFixed(2) + '%'
+                    : '0%',
         })
     } catch (error) {
         console.error('[TEMPORAL API] Error getting stats:', error)
         res.status(500).json({ error: 'Failed to get statistics' })
     }
 }
-
 
 export const apply_decay = async (req: any, res: any) => {
     try {
@@ -259,7 +328,7 @@ export const apply_decay = async (req: any, res: any) => {
         res.json({
             decay_rate,
             facts_updated: updated,
-            message: 'Confidence decay applied successfully'
+            message: 'Confidence decay applied successfully',
         })
     } catch (error) {
         console.error('[TEMPORAL API] Error applying decay:', error)
@@ -267,13 +336,14 @@ export const apply_decay = async (req: any, res: any) => {
     }
 }
 
-
 export const compare_facts = async (req: any, res: any) => {
     try {
         const { subject, time1, time2 } = req.query
 
         if (!subject || !time1 || !time2) {
-            return res.status(400).json({ error: 'subject, time1, and time2 parameters are required' })
+            return res
+                .status(400)
+                .json({ error: 'subject, time1, and time2 parameters are required' })
         }
 
         const t1 = new Date(time1)
@@ -290,15 +360,14 @@ export const compare_facts = async (req: any, res: any) => {
                 added: comparison.added.length,
                 removed: comparison.removed.length,
                 changed: comparison.changed.length,
-                unchanged: comparison.unchanged.length
-            }
+                unchanged: comparison.unchanged.length,
+            },
         })
     } catch (error) {
         console.error('[TEMPORAL API] Error comparing facts:', error)
         res.status(500).json({ error: 'Failed to compare facts' })
     }
 }
-
 
 export const get_most_volatile = async (req: any, res: any) => {
     try {
@@ -310,7 +379,7 @@ export const get_most_volatile = async (req: any, res: any) => {
             subject,
             limit: parseInt(limit),
             volatile_facts: volatile,
-            count: volatile.length
+            count: volatile.length,
         })
     } catch (error) {
         console.error('[TEMPORAL API] Error getting volatile facts:', error)
