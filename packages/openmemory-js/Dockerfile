@@ -23,6 +23,15 @@ FROM node:20-bookworm-slim AS production
 
 WORKDIR /app
 
+ARG OM_BUILD_SHA=""
+ARG OM_BUILD_REF=""
+ARG OM_BUILD_TIME=""
+ARG OM_IMAGE=""
+ENV OM_BUILD_SHA=$OM_BUILD_SHA \
+    OM_BUILD_REF=$OM_BUILD_REF \
+    OM_BUILD_TIME=$OM_BUILD_TIME \
+    OM_IMAGE=$OM_IMAGE
+
 # Create a dedicated non-root user for security
 RUN groupadd --gid 1001 appgroup \
  && useradd --uid 1001 --gid appgroup --system --no-create-home appuser
