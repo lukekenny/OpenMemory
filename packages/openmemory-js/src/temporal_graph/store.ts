@@ -2,6 +2,18 @@ import { run_async, get_async, all_async } from '../core/db'
 import { TemporalFact, TemporalEdge } from './types'
 import { randomUUID } from 'crypto'
 
+/**
+ * Insert a temporal fact.
+ *
+ * NOTE: Most predicates are treated as "latest value wins" per (subject,predicate[,user]).
+ * When inserting a newer fact, older active facts are closed by setting valid_to.
+ *
+ * Exception: the subject catalog is set-like. For:
+ *   subject = system:subject_catalog
+ *   predicate = known_subject
+ * we treat identity as (subject,predicate,object) so adding a new known subject does NOT
+ * invalidate other known subjects.
+ */
 export const insert_fact = async (
     subject: string,
     predicate: string,
@@ -15,25 +27,55 @@ export const insert_fact = async (
     const now = Date.now()
     const valid_from_ts = valid_from.getTime()
 
-    const existing = await all_async(`
+    const is_subject_catalog_known_subject =
+        subject === 'system:subject_catalog' && predicate === 'known_subject'
+
+    const where_object = is_subject_catalog_known_subject ? ' AND object = ?' : ''
+
+    const existing_params: any[] = user_id ? [subject, predicate, user_id] : [subject, predicate]
+    if (is_subject_catalog_known_subject) {
+        existing_params.push(object)
+    }
+
+    const existing = await all_async(
+        `
         SELECT id, valid_from FROM temporal_facts
-        WHERE subject = ? AND predicate = ? AND valid_to IS NULL${user_id ? ' AND user_id = ?' : ''}
+        WHERE subject = ? AND predicate = ? AND valid_to IS NULL${user_id ? ' AND user_id = ?' : ''}${where_object}
         ORDER BY valid_from DESC
-    `, user_id ? [subject, predicate, user_id] : [subject, predicate])
+    `,
+        existing_params
+    )
 
     for (const old of existing) {
         if (old.valid_from < valid_from_ts) {
             await run_async(`UPDATE temporal_facts SET valid_to = ? WHERE id = ?`, [valid_from_ts - 1, old.id])
-            console.error(`[TEMPORAL] Closed fact ${old.id} at ${new Date(valid_from_ts - 1).toISOString()}`)
+            console.error(
+                `[TEMPORAL] Closed fact ${old.id} at ${new Date(valid_from_ts - 1).toISOString()}`
+            )
         }
     }
 
-    await run_async(`
+    await run_async(
+        `
         INSERT INTO temporal_facts (id, user_id, subject, predicate, object, valid_from, valid_to, confidence, last_updated, metadata)
         VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)
-    `, [id, user_id || null, subject, predicate, object, valid_from_ts, confidence, now, metadata ? JSON.stringify(metadata) : null])
+    `,
+        [
+            id,
+            user_id || null,
+            subject,
+            predicate,
+            object,
+            valid_from_ts,
+            confidence,
+            now,
+            metadata ? JSON.stringify(metadata) : null,
+        ]
+    )
 
-    console.error(`[TEMPORAL] Inserted fact: ${subject} ${predicate} ${object} (from ${valid_from.toISOString()}, confidence=${confidence}${user_id ? `, user=${user_id}` : ''})`)
+    console.error(
+        `[TEMPORAL] Inserted fact: ${subject} ${predicate} ${object} (from ${valid_from.toISOString()}, confidence=${confidence}${user_id ? `, user=${user_id}` : ''})`
+    )
     return id
 }
 
