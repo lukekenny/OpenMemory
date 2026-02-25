@@ -1,7 +1,26 @@
 
 
 import { get_async, all_async } from '../core/db'
-import { TemporalFact, TemporalQuery, TimelineEntry } from './types'
+import { TemporalFact } from './types'
+
+function to_epoch_ms(v: any): number {
+    if (v === null || v === undefined) return NaN
+    if (typeof v === 'number') return Number.isFinite(v) ? v : NaN
+    if (typeof v === 'bigint') return Number(v)
+    if (typeof v === 'string') {
+        const s = v.trim()
+        if (!s) return NaN
+        if (/^\d+$/.test(s)) return Number(s)
+        if (/^\d+(\.\d+)?$/.test(s)) return Math.round(Number(s))
+        return NaN
+    }
+    return NaN
+}
+
+function date_from_db(v: any): Date {
+    const n = to_epoch_ms(v)
+    return new Date(n)
+}
 
 
 export const query_facts_at_time = async (
@@ -59,10 +78,10 @@ export const query_facts_at_time = async (
         subject: row.subject,
         predicate: row.predicate,
         object: row.object,
-        valid_from: new Date(row.valid_from),
-        valid_to: row.valid_to ? new Date(row.valid_to) : null,
+        valid_from: date_from_db(row.valid_from),
+        valid_to: row.valid_to ? date_from_db(row.valid_to) : null,
         confidence: row.confidence,
-        last_updated: new Date(row.last_updated),
+        last_updated: date_from_db(row.last_updated),
         metadata: row.metadata ? JSON.parse(row.metadata) : undefined
     }))
 }
@@ -73,8 +92,6 @@ export const get_current_fact = async (
     predicate: string,
     user_id?: string
 ): Promise<TemporalFact | null> => {
-    const now = Date.now()
-
     const row = await get_async(`
         SELECT id, user_id, subject, predicate, object, valid_from, valid_to, confidence, last_updated, metadata
         FROM temporal_facts
@@ -91,10 +108,10 @@ export const get_current_fact = async (
         subject: row.subject,
         predicate: row.predicate,
         object: row.object,
-        valid_from: new Date(row.valid_from),
-        valid_to: row.valid_to ? new Date(row.valid_to) : null,
+        valid_from: date_from_db(row.valid_from),
+        valid_to: row.valid_to ? date_from_db(row.valid_to) : null,
         confidence: row.confidence,
-        last_updated: new Date(row.last_updated),
+        last_updated: date_from_db(row.last_updated),
         metadata: row.metadata ? JSON.parse(row.metadata) : undefined
     }
 }
@@ -152,10 +169,10 @@ export const query_facts_in_range = async (
         subject: row.subject,
         predicate: row.predicate,
         object: row.object,
-        valid_from: new Date(row.valid_from),
-        valid_to: row.valid_to ? new Date(row.valid_to) : null,
+        valid_from: date_from_db(row.valid_from),
+        valid_to: row.valid_to ? date_from_db(row.valid_to) : null,
         confidence: row.confidence,
-        last_updated: new Date(row.last_updated),
+        last_updated: date_from_db(row.last_updated),
         metadata: row.metadata ? JSON.parse(row.metadata) : undefined
     }))
 }
@@ -181,10 +198,10 @@ export const find_conflicting_facts = async (
         subject: row.subject,
         predicate: row.predicate,
         object: row.object,
-        valid_from: new Date(row.valid_from),
-        valid_to: row.valid_to ? new Date(row.valid_to) : null,
+        valid_from: date_from_db(row.valid_from),
+        valid_to: row.valid_to ? date_from_db(row.valid_to) : null,
         confidence: row.confidence,
-        last_updated: new Date(row.last_updated),
+        last_updated: date_from_db(row.last_updated),
         metadata: row.metadata ? JSON.parse(row.metadata) : undefined
     }))
 }
@@ -224,10 +241,10 @@ export const get_facts_by_subject = async (
         subject: row.subject,
         predicate: row.predicate,
         object: row.object,
-        valid_from: new Date(row.valid_from),
-        valid_to: row.valid_to ? new Date(row.valid_to) : null,
+        valid_from: date_from_db(row.valid_from),
+        valid_to: row.valid_to ? date_from_db(row.valid_to) : null,
         confidence: row.confidence,
-        last_updated: new Date(row.last_updated),
+        last_updated: date_from_db(row.last_updated),
         metadata: row.metadata ? JSON.parse(row.metadata) : undefined
     }))
 }
@@ -256,10 +273,10 @@ export const search_facts = async (
         subject: row.subject,
         predicate: row.predicate,
         object: row.object,
-        valid_from: new Date(row.valid_from),
-        valid_to: row.valid_to ? new Date(row.valid_to) : null,
+        valid_from: date_from_db(row.valid_from),
+        valid_to: row.valid_to ? date_from_db(row.valid_to) : null,
         confidence: row.confidence,
-        last_updated: new Date(row.last_updated),
+        last_updated: date_from_db(row.last_updated),
         metadata: row.metadata ? JSON.parse(row.metadata) : undefined
     }))
 }
@@ -296,10 +313,10 @@ export const get_related_facts = async (
             subject: row.subject,
             predicate: row.predicate,
             object: row.object,
-            valid_from: new Date(row.valid_from),
-            valid_to: row.valid_to ? new Date(row.valid_to) : null,
+            valid_from: date_from_db(row.valid_from),
+            valid_to: row.valid_to ? date_from_db(row.valid_to) : null,
             confidence: row.confidence,
-            last_updated: new Date(row.last_updated),
+            last_updated: date_from_db(row.last_updated),
             metadata: row.metadata ? JSON.parse(row.metadata) : undefined
         },
         relation: row.relation_type,
