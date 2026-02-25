@@ -1,6 +1,6 @@
 services:
   openmemory:
-    image: ghcr.io/lukekenny/openmemory-js/openmemory-js:latest
+    image: ghcr.io/lukekenny/openmemory-js:latest
     ports:
       - '8080:8080'
     environment:
