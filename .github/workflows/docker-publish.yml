@@ -11,7 +11,7 @@ on:
 env:
   REGISTRY: ghcr.io
   # choose a fixed image name (not github.repository)
-  IMAGE_NAME: ${{ github.repository_owner }}/openmemory-js/openmemory-js
+  IMAGE_NAME: ${{ github.repository_owner }}/openmemory-js
 
 jobs:
   build:
