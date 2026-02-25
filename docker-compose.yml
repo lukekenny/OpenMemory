@@ -4,6 +4,7 @@ services:
     ports:
       - '8080:8080'
     environment:
+      - TZ=${TZ}
       # Core Configuration
       - OM_PORT=${OM_PORT:-8080}
       - OM_MODE=${OM_MODE:-standard}
@@ -143,6 +144,7 @@ services:
     ports:
       - '3000:3000'
     environment:
+      - TZ=${TZ}
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8080}
       - NEXT_PUBLIC_API_KEY=${NEXT_PUBLIC_API_KEY:-}
     depends_on:
@@ -166,6 +168,8 @@ services:
     image: valkey/valkey:8.0
     ports:
       - '6379:6379'
+    environment:
+      - TZ=${TZ}
     volumes:
       - valkey_data:/data
     restart: unless-stopped
