@@ -46,6 +46,36 @@ export function sys(app: any) {
         },
     );
 
+    /**
+     * Build/runtime info endpoint.
+     *
+     * Purpose: make it easy to confirm which image/build is running without exec'ing into the container.
+     *
+     * These values are populated at build/deploy time via environment variables when available:
+     * - OM_BUILD_SHA: git commit SHA
+     * - OM_BUILD_REF: git ref/branch/tag
+     * - OM_BUILD_TIME: ISO timestamp of build
+     * - OM_IMAGE: image name/tag
+     * - OM_VERSION: app version override (falls back to package.json if wired later)
+     */
+    app.get("/api/system/build", async (_req: any, res: any) => {
+        res.json({
+            ok: true,
+            version: process.env.OM_VERSION || "openmemory-js",
+            build: {
+                sha: process.env.OM_BUILD_SHA || null,
+                ref: process.env.OM_BUILD_REF || null,
+                time: process.env.OM_BUILD_TIME || null,
+                image: process.env.OM_IMAGE || null,
+            },
+            runtime: {
+                node: process.version,
+                pid: process.pid,
+                uptime_s: Math.round(process.uptime()),
+            },
+        });
+    });
+
     app.get(
         "/sectors",
         async (incoming_http_request: any, outgoing_http_response: any) => {
