@@ -23,11 +23,15 @@ jobs:
         run: |
           cd packages/openmemory-py
           pip install -e .[dev]
+          pip install pytest
+          pip install pytest-asyncio
+          pip install python-dotenv
+          pip install pyyaml
           
       - name: Run Omnibus Test (Deep Verify)
         run: |
           cd packages/openmemory-py
-          pytest tests/test_omnibus.py -v
+          python -m pytest tests/test_omnibus.py -v
           
   test-node:
     name: Test Node.js SDK
