@@ -72,6 +72,17 @@ export function mem(app: any) {
         const b = req.body as q_req;
         const k = b.k || 8;
         try {
+            if (Array.isArray(b.filters?.tags) && b.filters?.tags.length) {
+                console.info(
+                    "[memory/query] received tag filter",
+                    JSON.stringify({
+                        user_id: b.filters?.user_id || b.user_id || null,
+                        query: b.query,
+                        k,
+                        tags: b.filters?.tags,
+                    }),
+                );
+            }
             const f = {
                 sectors: b.filters?.sector ? [b.filters.sector] : undefined,
                 minSalience: b.filters?.min_score,
@@ -81,6 +92,18 @@ export function mem(app: any) {
                 tags: b.filters?.tags,
             };
             const m = await hsg_query(b.query, k, f);
+            if (Array.isArray(b.filters?.tags) && b.filters?.tags.length) {
+                console.info(
+                    "[memory/query] tag filter result",
+                    JSON.stringify({
+                        user_id: b.filters?.user_id || b.user_id || null,
+                        query: b.query,
+                        tags: b.filters?.tags,
+                        match_count: m.length,
+                        match_ids: m.map((x: any) => x.id),
+                    }),
+                );
+            }
             res.json({
                 query: b.query,
                 matches: m.map((x: any) => ({
@@ -98,6 +121,17 @@ export function mem(app: any) {
                 })),
             });
         } catch (e: any) {
+            console.error(
+                "[memory/query] failed",
+                JSON.stringify({
+                    user_id: b.filters?.user_id || b.user_id || null,
+                    query: b.query,
+                    k,
+                    tags: b.filters?.tags || [],
+                    error: e?.message || String(e),
+                    stack: e?.stack || null,
+                }),
+            );
             res.json({ query: b.query, matches: [] });
         }
     });

@@ -850,12 +850,17 @@ export async function hsg_query(
         const filterTags = (f?.tags || [])
             .map((tag) => String(tag || "").trim().toLowerCase())
             .filter((tag) => Boolean(tag));
+        let tagCandidateCount = 0;
+        let tagMatchedCount = 0;
         for (const mid of Array.from(ids)) {
             const m = await q.get_mem.get(mid);
             if (!m || (f?.minSalience && m.salience < f.minSalience)) continue;
             if (f?.user_id && m.user_id !== f.user_id) continue;
             if (f?.startTime && m.created_at < f.startTime) continue;
             if (f?.endTime && m.created_at > f.endTime) continue;
+            if (filterTags.length > 0) {
+                tagCandidateCount += 1;
+            }
             let parsedTags: unknown = m.tags || [];
             if (typeof m.tags === "string") {
                 try {
@@ -872,6 +877,9 @@ export async function hsg_query(
                 !memoryTags.some((tag) => filterTags.includes(tag))
             ) {
                 continue;
+            }
+            if (filterTags.length > 0) {
+                tagMatchedCount += 1;
             }
             const mvf = await calc_multi_vec_fusion_score(mid, qe, w);
             const csr = await calculateCrossSectorResonanceScore(
@@ -937,6 +945,19 @@ export async function hsg_query(
                 tags: Array.isArray(parsedTags) ? parsedTags : [],
                 meta: typeof m.meta === 'string' ? JSON.parse(m.meta) : (m.meta || {}),
             });
+        }
+        if (filterTags.length > 0) {
+            console.info(
+                "[hsg_query] tag filter stats",
+                JSON.stringify({
+                    user_id: f?.user_id || null,
+                    query: qt,
+                    tags: filterTags,
+                    candidate_ids: ids.size,
+                    tag_candidate_count: tagCandidateCount,
+                    tag_matched_count: tagMatchedCount,
+                }),
+            );
         }
         res.sort((a, b) => b.score - a.score);
         const top_cands = res.slice(0, eff_k);
