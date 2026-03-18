@@ -750,7 +750,14 @@ const get_sal = async (id: string, def_sal: number): Promise<number> => {
 export async function hsg_query(
     qt: string,
     k = 10,
-    f?: { sectors?: string[]; minSalience?: number; user_id?: string; startTime?: number; endTime?: number },
+    f?: {
+        sectors?: string[];
+        minSalience?: number;
+        user_id?: string;
+        startTime?: number;
+        endTime?: number;
+        tags?: string[];
+    },
 ): Promise<hsg_q_result[]> {
 
 
@@ -798,9 +805,10 @@ export async function hsg_query(
             string,
             Array<{ id: string; similarity: number }>
         > = {};
+        const searchMultiplier = f?.tags?.length ? 6 : 3;
         for (const s of ss) {
             const qv = qe[s];
-            const results = await vector_store.searchSimilar(s, qv, k * 3, f?.user_id);
+            const results = await vector_store.searchSimilar(s, qv, k * searchMultiplier, f?.user_id);
             sr[s] = results.map(r => ({ id: r.id, similarity: r.score }));
         }
         const all_sims = Object.values(sr).flatMap((r) =>
@@ -839,12 +847,32 @@ export async function hsg_query(
         }
 
         const res: hsg_q_result[] = [];
+        const filterTags = (f?.tags || [])
+            .map((tag) => String(tag || "").trim().toLowerCase())
+            .filter((tag) => Boolean(tag));
         for (const mid of Array.from(ids)) {
             const m = await q.get_mem.get(mid);
             if (!m || (f?.minSalience && m.salience < f.minSalience)) continue;
             if (f?.user_id && m.user_id !== f.user_id) continue;
             if (f?.startTime && m.created_at < f.startTime) continue;
             if (f?.endTime && m.created_at > f.endTime) continue;
+            let parsedTags: unknown = m.tags || [];
+            if (typeof m.tags === "string") {
+                try {
+                    parsedTags = JSON.parse(m.tags || "[]");
+                } catch {
+                    parsedTags = [];
+                }
+            }
+            const memoryTags = Array.isArray(parsedTags)
+                ? parsedTags.map((tag) => String(tag || "").trim().toLowerCase()).filter((tag) => Boolean(tag))
+                : [];
+            if (
+                filterTags.length > 0 &&
+                !memoryTags.some((tag) => filterTags.includes(tag))
+            ) {
+                continue;
+            }
             const mvf = await calc_multi_vec_fusion_score(mid, qe, w);
             const csr = await calculateCrossSectorResonanceScore(
                 m.primary_sector,
@@ -906,7 +934,7 @@ export async function hsg_query(
                 path: em?.path || [mid],
                 salience: sal,
                 last_seen_at: m.last_seen_at,
-                tags: typeof m.tags === 'string' ? JSON.parse(m.tags) : (m.tags || []),
+                tags: Array.isArray(parsedTags) ? parsedTags : [],
                 meta: typeof m.meta === 'string' ? JSON.parse(m.meta) : (m.meta || {}),
             });
         }

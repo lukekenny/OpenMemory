@@ -78,6 +78,7 @@ export function mem(app: any) {
                 user_id: b.filters?.user_id || b.user_id,
                 startTime: b.filters?.startTime,
                 endTime: b.filters?.endTime,
+                tags: b.filters?.tags,
             };
             const m = await hsg_query(b.query, k, f);
             res.json({
